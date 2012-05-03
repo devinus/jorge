@@ -1,0 +1,8 @@
+{application, jorge, [
+    {description,
+        "A simple DSL for generating Erlang based on tuples of tuples."},
+    {vsn, "0.1.0"},
+    {applications, [kernel, stdlib]},
+    {registered, []},
+    {mod, {jorge, []}}
+]}.
