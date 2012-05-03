@@ -1,6 +1,6 @@
 # Jorge
 
-Jorge (pronounced HOR-HAY) is a simple DSL for generating Erlang based on
+Jorge (pronounced HOR-HAY) is a simple Erlang DSL for generating XML based on
 tuples of tuples.
 
 ## Example
