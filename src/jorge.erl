@@ -6,52 +6,54 @@
 -export([jorge_test/0]).
 -endif.
 
--type key() :: atom() | string() | binary().
+-type key() :: atom() | binary().
 -type value() :: key() | integer() | float() | fun(() -> iolist()).
--type attr() :: {key(), value()}.
+-type attrs() :: [{key(), value()}].
 
--spec jorge({Node :: key(), Value :: value()}) -> iolist();
-           ({Node :: key(), Attrs :: [attr()], Value :: value()}) -> iolist();
-           (Value :: value()) -> iolist().
-jorge({Node, Value}) ->
-    jorge_node(Node, Value);
-jorge({Node, Attrs, Value}) ->
-    jorge_node(Node, Attrs, Value);
-jorge(Value) ->
+-spec jorge(undefined) -> undefined;
+           (Node :: {key(), value()}) -> iolist();
+           (Node :: {key(), attrs(), value()}) -> iolist().
+jorge(undefined) ->
+   undefined;
+jorge(Node) ->
+    jorge_node(Node).
+
+jorge_node({Key, Value}) ->
+    jorge_node(jorge_key(Key), jorge_node(Value));
+jorge_node({Key, Attrs, Value}) ->
+    jorge_node(jorge_key(Key), jorge_attrs(Attrs), jorge_node(Value));
+jorge_node(Value) ->
     jorge_value(Value).
 
-jorge_node(Node, Value) when is_binary(Node) ->
-    [<<$<, Node/binary, $>>>, jorge(Value), <<"</", Node/binary, $>>>];
-jorge_node(Node, Value) ->
-    jorge_node(jorge_key(Node), Value).
+jorge_node(Key, Value) ->
+    [<<$<, Key/binary, $>>>, Value, <<"</", Key/binary, $>>>].
 
-jorge_node(Node, Attrs, Value) when is_binary(Node) ->
-    Attrs1 = jorge_attrs(Attrs, <<>>),
-    [<<$<, Node/binary, Attrs1/binary, $>>>,
-         jorge(Value),
-     <<"</", Node/binary, $>>>];
-jorge_node(Node, Attrs, Value) ->
-    jorge_node(jorge_key(Node), Attrs, Value).
+jorge_node(Key, Attrs, Value) ->
+    [<<$<, Key/binary, Attrs/binary, $>>>, Value, <<"</", Key/binary, $>>>].
+
+jorge_attrs(Attrs) ->
+    jorge_attrs(Attrs, <<>>).
 
 jorge_attrs([], Acc) ->
     Acc;
 jorge_attrs([{Key, Value} | Rest], Acc) ->
-    Key1 = jorge_key(Key),
-    Value1 = jorge_value(Value),
-    Attr = <<Key1/binary, "=\"", Value1/binary, $">>,
+    jorge_attrs(jorge_attr(jorge_key(Key), jorge_value(Value)), Rest, Acc).
+
+jorge_attrs(Attr, Rest, Acc) ->
     jorge_attrs(Rest, <<Acc/binary, $\s, Attr/binary>>).
+
+jorge_attr(Key, Value) ->
+    <<Key/binary, "=\"", Value/binary, $">>.
 
 jorge_key(Key) when is_atom(Key) ->
     atom_to_binary(Key, utf8);
-jorge_key(Key) when is_list(Key) ->
-    list_to_binary(Key);
 jorge_key(Key) when is_binary(Key) ->
     Key.
 
 jorge_value(Value) when is_binary(Value) ->
     Value;
 jorge_value(Value) when is_list(Value) ->
-    jorge_list(Value, []);
+    jorge_list(Value);
 jorge_value(Value) when is_atom(Value) ->
     atom_to_binary(Value, utf8);
 jorge_value(Value) when is_integer(Value) ->
@@ -61,12 +63,17 @@ jorge_value(Value) when is_float(Value) ->
 jorge_value(Value) when is_function(Value, 0) ->
     jorge_value(Value()).
 
+jorge_list(List) ->
+    jorge_list(List, []).
+
 jorge_list([], []) ->
     [];
 jorge_list([], Acc) ->
     lists:reverse(Acc);
+jorge_list([undefined | Rest], Acc) ->
+    jorge_list(Rest, Acc);
 jorge_list([Head | Rest], Acc) ->
-    jorge_list(Rest, [jorge(Head) | Acc]).
+    jorge_list(Rest, [jorge_node(Head) | Acc]).
 
 -ifdef(TEST).
 
@@ -86,6 +93,7 @@ jorge_test() ->
                 {baz, 2},
                 {quux, corge},
                 {plugh, 5.0},
+                undefined,
                 {xyzzy, <<"thud">>},
                 {spam, fun() -> eggs end}
             ]}
