@@ -72,8 +72,17 @@ jorge_list([], Acc) ->
     lists:reverse(Acc);
 jorge_list([undefined | Rest], Acc) ->
     jorge_list(Rest, Acc);
+jorge_list([List | Rest], Acc) when is_list(List) ->
+    jorge_nested_list(List, Rest, Acc);
 jorge_list([Head | Rest], Acc) ->
     jorge_list(Rest, [jorge_node(Head) | Acc]).
+
+jorge_nested_list([], Siblings, Acc) ->
+    jorge_list(Siblings, Acc);
+jorge_nested_list([undefined | Rest], Siblings, Acc) ->
+    jorge_nested_list(Rest, Siblings, Acc);
+jorge_nested_list([Head | Rest], Siblings, Acc) ->
+    jorge_nested_list(Rest, Siblings, [jorge_node(Head) | Acc]).
 
 -ifdef(TEST).
 
@@ -98,6 +107,19 @@ jorge_test() ->
                 {spam, fun() -> eggs end}
             ]}
         }
+    ),
+    
+    Nested = [<<"<nested>">>,
+                [[<<"<foo>">>, <<"bar">>, <<"</foo>">>],
+                 [<<"<abc>">>, <<"123">>, <<"</abc>">>],
+                 [<<"<def>">>, <<"456">>, <<"</def>">>]],
+              <<"</nested>">>],
+    
+    Nested = jorge(
+        {nested, [
+            {foo, bar},
+            [{abc, 123}, undefined, {def, 456}]
+        ]}
     ).
 
 -endif.
