@@ -18,6 +18,8 @@ jorge(undefined) ->
 jorge(Node) ->
     jorge_node(Node).
 
+jorge_node({Key}) ->
+    jorge_node(jorge_key(Key), <<>>);
 jorge_node({Key, Value}) ->
     jorge_node(jorge_key(Key), jorge_node(Value));
 jorge_node({Key, Attrs, Value}) ->
@@ -25,9 +27,13 @@ jorge_node({Key, Attrs, Value}) ->
 jorge_node(Value) ->
     jorge_value(Value).
 
+jorge_node(Key, <<>>) ->
+    [<<$<, Key/binary, $>>>, <<"</", Key/binary, $>>>];
 jorge_node(Key, Value) ->
     [<<$<, Key/binary, $>>>, Value, <<"</", Key/binary, $>>>].
 
+jorge_node(Key, Attrs, <<>>) ->
+    [<<$<, Key/binary, Attrs/binary, $>>>, <<"</", Key/binary, $>>>];
 jorge_node(Key, Attrs, Value) ->
     [<<$<, Key/binary, Attrs/binary, $>>>, Value, <<"</", Key/binary, $>>>].
 
@@ -93,7 +99,8 @@ jorge_test() ->
                   [<<"<quux>">>,<<"corge">>,<<"</quux>">>],
                   [<<"<plugh>">>,<<"5.0">>,<<"</plugh>">>],
                   [<<"<xyzzy>">>, <<"thud">>, <<"</xyzzy>">>],
-                  [<<"<spam>">>, <<"eggs">>, <<"</spam>">>]],
+                  [<<"<spam>">>, <<"eggs">>, <<"</spam>">>],
+                  [<<"<gary>">>, <<"</gary>">>]],
                  <<"</bar>">>],
                 <<"</foo>">>],
     Expected = jorge(
@@ -104,17 +111,18 @@ jorge_test() ->
                 {plugh, 5.0},
                 undefined,
                 {xyzzy, <<"thud">>},
-                {spam, fun() -> eggs end}
+                {spam, fun() -> eggs end},
+                {gary}
             ]}
         }
     ),
-    
+
     Nested = [<<"<nested>">>,
                 [[<<"<foo>">>, <<"bar">>, <<"</foo>">>],
                  [<<"<abc>">>, <<"123">>, <<"</abc>">>],
                  [<<"<def>">>, <<"456">>, <<"</def>">>]],
               <<"</nested>">>],
-    
+
     Nested = jorge(
         {nested, [
             {foo, bar},
